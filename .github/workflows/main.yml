@@ -1,0 +1,31 @@
+name: Different Mind Build
+
+on: [ push ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-go@v2
+        with:
+          go-version: '^1.16.2'
+      - name: Build OLM
+        run: |
+          git clone https://gitlab.matrix.org/matrix-org/olm/
+          cd olm/
+          cmake . -Bbuild
+          make static
+          make
+          cp build/libolm.so* ~/lib/
+          cp -r include/ ~/include/
+      - name: Run Build
+        run: |
+          chmod +x ./build.sh
+          ./build.sh
+      - uses: actions/upload-artifact@v2
+        with:
+          name: matrix-github-bot
+          path: |
+            matrix-github-bot
+            lib/libolm.so*

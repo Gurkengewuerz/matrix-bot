@@ -1,0 +1,5 @@
+.idea/
+lib/*.so*
+include/olm/
+.env
+matrix-github-bot
