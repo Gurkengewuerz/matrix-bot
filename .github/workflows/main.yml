@@ -10,22 +10,26 @@ jobs:
       - uses: actions/setup-go@v2
         with:
           go-version: '^1.16.2'
-      - name: Build OLM
-        run: |
-          git clone https://gitlab.matrix.org/matrix-org/olm/
-          cd olm/
-          cmake . -Bbuild
-          make static
-          make
-          cp build/libolm.so* ~/lib/
-          cp -r include/ ~/include/
+#      - name: Build OLM
+#        run: |
+#          apt update && apt -y install cmake build-essential
+#          git clone https://gitlab.matrix.org/matrix-org/olm/
+#          cd olm/
+#          cmake . -Bbuild
+#          make static
+#          make
+#          cp build/libolm.so* ../lib/
+#          cp -r include/olm/ ../include/
+#          cd ..
       - name: Run Build
         run: |
-          chmod +x ./build.sh
-          ./build.sh
+          go build -o matrix-bot
+      - name: Create Artifact
+        run: |
+          mkdir build/
+          mv matrix-bot build/
+          mv plugins/ build/
       - uses: actions/upload-artifact@v2
         with:
-          name: matrix-github-bot
-          path: |
-            matrix-github-bot
-            lib/libolm.so*
+          name: matrix-bot
+          path: build/

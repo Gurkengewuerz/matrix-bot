@@ -1,0 +1,19 @@
+# should be a absolute path
+sqlite_file: ./data.db
+# for ssl encryption please use a pantalaimon proxy
+homeserver: https://matrix.example.com
+bot:
+  username: my-bot
+  displayname: mc8051 Bot
+  password: XXXXXXXXXXXXX
+  # device id will be genereated if is empty and bot is started once
+  # please fill it afterwards
+  device_id:
+plugins:
+  - github.js
+webserver:
+  listen_on: 0.0.0.0
+  port: 7785
+  base_url: https://bot.example.com
+logger:
+  debug: true
