@@ -15,6 +15,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -24,7 +25,18 @@ var CFG *config.Config
 var pluginPath = flag.String("plugin", "", "Plugin path")
 var configPath = flag.String("config", "", "Config Path")
 var isHelp = flag.Bool("help", false, "Help command")
-var isAvatar = flag.Bool("avatar", false, "Update the avatar using the config.bot.avatar")
+
+func eventAllowed(roomID id.RoomID) bool  {
+	if len(CFG.Rooms) == 0 {
+		return true
+	}
+	for _, room := range CFG.Rooms {
+		if strings.EqualFold(room, roomID.String()) {
+			return true
+		}
+	}
+	return false
+}
 
 func main() {
 	flag.Parse()
@@ -152,6 +164,9 @@ func main() {
 			// Ignore events from before the program started
 			return
 		}
+		if eventAllowed(evt.RoomID) {
+			return
+		}
 		if evt.Content.AsMember().Membership == event.MembershipInvite && client.UserID.String() == *evt.StateKey {
 			_, err := client.JoinRoomByID(evt.RoomID)
 			roomLogger := Log.WithFields(logrus.Fields{
@@ -171,6 +186,9 @@ func main() {
 			// Ignore events from before the program started
 			return
 		}
+		if eventAllowed(evt.RoomID) {
+			return
+		}
 		message, isMessage := evt.Content.Parsed.(*event.MessageEventContent)
 		if isMessage {
 			pluginHandler.Handle(evt, message.Body)
@@ -182,15 +200,21 @@ func main() {
 			// Ignore events from before the program started
 			return
 		}
+		eventLogger := Log.WithFields(logrus.Fields{
+			"sender": evt.Sender,
+			"type":   evt.Type.String(),
+			"id":     evt.ID,
+			"room":     evt.RoomID.String(),
+		})
+		if eventAllowed(evt.RoomID) {
+			eventLogger.Warn("event from room which is ignored")
+			return
+		}
 		local, _, err := evt.Sender.Parse()
 		if err == nil && local == CFG.Bot.Username {
 			return
 		}
-		Log.WithFields(logrus.Fields{
-			"sender": evt.Sender,
-			"type":   evt.Type.String(),
-			"id":     evt.ID,
-		}).Debug(evt.Content.AsMessage().Body)
+		eventLogger.Debug(evt.Content.AsMessage().Body)
 	})
 
 	// Start long polling in the background

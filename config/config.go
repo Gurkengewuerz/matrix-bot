@@ -21,6 +21,7 @@ type Config struct {
 	} `yaml:"bot"`
 
 	Plugins []string `yaml:"plugins"`
+	Rooms []string `yaml:"rooms"`
 
 	WebServer struct {
 		ListenOn string `yaml:"listen_on"`
