@@ -26,11 +26,11 @@ var pluginPath = flag.String("plugin", "", "Plugin path")
 var configPath = flag.String("config", "", "Config Path")
 var isHelp = flag.Bool("help", false, "Help command")
 
-func eventAllowed(roomID id.RoomID) bool  {
-	if len(CFG.Rooms) == 0 {
+func eventAllowed(config *config.Config, roomID id.RoomID) bool  {
+	if len(config.Rooms) == 0 {
 		return true
 	}
-	for _, room := range CFG.Rooms {
+	for _, room := range config.Rooms {
 		if strings.EqualFold(room, roomID.String()) {
 			return true
 		}
@@ -164,7 +164,7 @@ func main() {
 			// Ignore events from before the program started
 			return
 		}
-		if eventAllowed(evt.RoomID) {
+		if !eventAllowed(CFG, evt.RoomID) {
 			return
 		}
 		if evt.Content.AsMember().Membership == event.MembershipInvite && client.UserID.String() == *evt.StateKey {
@@ -186,7 +186,7 @@ func main() {
 			// Ignore events from before the program started
 			return
 		}
-		if eventAllowed(evt.RoomID) {
+		if !eventAllowed(CFG, evt.RoomID) {
 			return
 		}
 		message, isMessage := evt.Content.Parsed.(*event.MessageEventContent)
@@ -206,7 +206,7 @@ func main() {
 			"id":     evt.ID,
 			"room":     evt.RoomID.String(),
 		})
-		if eventAllowed(evt.RoomID) {
+		if !eventAllowed(CFG, evt.RoomID) {
 			eventLogger.Warn("event from room which is ignored")
 			return
 		}
