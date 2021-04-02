@@ -37,6 +37,10 @@ cd matrix-bot
 
 2. Build repository `go build`
 
+⚠ Because we are using go-sqlite3 CGO is needed!
+
+For cross-compiling from a newer Linux Distro (i.e. Windows WSL) to an older linux distro you can try `go build --ldflags '-linkmode external -extldflags "-static"'`
+
 *Dev branch build artifacts for Linux/amd64 are available in the the GitHub Actions.*
 
 # Encryption Support 🔐
