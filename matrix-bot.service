@@ -1,0 +1,18 @@
+[Unit]
+Description=Matrix Bot
+# If you are using pantalaimon, uncomment this line to make sure matrix bot starts after the pantalaimon service
+# After=pantalaimon.service
+
+[Service]
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=on-abort
+
+User=matrix
+Group=nogroup
+
+WorkingDirectory=/home/matrix/matrix-bot
+ExecStart=/home/matrix/matrix-bot/matrix-bot -config ./config.yaml -plugin ./plugins/
+SyslogIdentifier=matrix-bot
+
+[Install]
+WantedBy=multi-user.target

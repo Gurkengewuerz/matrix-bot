@@ -144,6 +144,8 @@ func (pm *PluginHandler) setupVM() error {
 		"DBQuery":  pm.scriptDBQuery,
 		"AddRoute": pm.scriptAddRoute,
 		"SHA256":   pm.scriptSHA256,
+		"HumanizeSeconds":   pm.scriptHumanizeSeconds,
+		"SendMessage":   pm.scriptSendMessage,
 	}
 
 	for name, function := range functions {
@@ -161,8 +163,9 @@ func (pm *PluginHandler) End() {
 }
 
 func (pm *PluginHandler) response(rID id.RoomID, msg string) {
-	content := format.RenderMarkdown(msg, true, false)
+	content := format.RenderMarkdown(msg, true, true)
 	pm.Client.SendMessageEvent(rID, event.EventMessage, &content)
+	//pm.Client.SendText(rID, msg)
 }
 
 func (pm *PluginHandler) Handle(evt *event.Event, msg string) {

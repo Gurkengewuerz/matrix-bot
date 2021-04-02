@@ -6,7 +6,6 @@ import (
 	"fmt"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/sirupsen/logrus"
-	"log"
 	"matrix-github-bot/config"
 	"matrix-github-bot/handler"
 	"matrix-github-bot/logger"
@@ -25,6 +24,7 @@ var CFG *config.Config
 var pluginPath = flag.String("plugin", "", "Plugin path")
 var configPath = flag.String("config", "", "Config Path")
 var isHelp = flag.Bool("help", false, "Help command")
+var isAvatar = flag.Bool("avatar", false, "Update the avatar using the config.bot.avatar")
 
 func main() {
 	flag.Parse()
@@ -82,8 +82,29 @@ func main() {
 	Log.Info("logged in")
 
 	if CFG.Bot.DeviceID == "" {
-		log.Println(resp.DeviceID)
+		Log.Info(resp.DeviceID)
 		os.Exit(1)
+	}
+
+	var mxc id.ContentURI
+	if CFG.Bot.Avatar == "remove" {
+		err = client.SetAvatarURL(mxc)
+	} else if len(CFG.Bot.Avatar) > 0 {
+		mxc, err = id.ParseContentURI(CFG.Bot.Avatar)
+		if err == nil {
+			ownContentURL, err := client.GetOwnAvatarURL()
+			if err != nil {
+				Log.Errorln("Failed to load own avatar:", err)
+			} else if ownContentURL.CUString() != mxc.CUString() {
+				err = client.SetAvatarURL(mxc)
+				Log.Info("updated avatar")
+			} else {
+				Log.Debug("not updating own avatar - is same mxc")
+			}
+		}
+	}
+	if err != nil {
+		Log.Warnln("Failed to update bot avatar:", err)
 	}
 
 	Log.Debug("updating device info")
@@ -159,6 +180,10 @@ func main() {
 	syncer.OnEvent(func(source mautrix.EventSource, evt *event.Event) {
 		if evt.Timestamp < start {
 			// Ignore events from before the program started
+			return
+		}
+		local, _, err := evt.Sender.Parse()
+		if err == nil && local == CFG.Bot.Username {
 			return
 		}
 		Log.WithFields(logrus.Fields{

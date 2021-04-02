@@ -64,7 +64,7 @@ func (pm *PluginHandler) scriptAddRoute(path goja.Value, method goja.Value, call
 			Headers:     headerData,
 		}))
 		if err != nil {
-			routerLog.Error("failed to run callback function")
+			routerLog.Errorf("failed to run callback function: %v", err)
 			pm.mutex.Unlock()
 			return
 		}

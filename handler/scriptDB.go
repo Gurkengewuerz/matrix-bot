@@ -45,19 +45,32 @@ func (pm *PluginHandler) scriptDBQuery(sql goja.Value, args ...goja.Value) goja.
 	}
 	defer rows.Close()
 
+	var (
+		result    [][]string
+		container []string
+		pointers  []interface{}
+	)
+
 	cols, err := rows.Columns()
 	if err != nil {
-		panic(err)
+		panic(err.Error())
 	}
 
-	var result [][]string
-	pointers := make([]interface{}, len(cols))
-	container := make([]string, len(cols))
-	for i, _ := range pointers {
-		pointers[i] = &container[i]
-	}
+	length := len(cols)
+
 	for rows.Next() {
-		rows.Scan(pointers...)
+		pointers = make([]interface{}, length)
+		container = make([]string, length)
+
+		for i := range pointers {
+			pointers[i] = &container[i]
+		}
+
+		err = rows.Scan(pointers...)
+		if err != nil {
+			panic(err.Error())
+		}
+
 		result = append(result, container)
 	}
 

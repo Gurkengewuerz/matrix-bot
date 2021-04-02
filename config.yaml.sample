@@ -9,6 +9,9 @@ bot:
   # device id will be genereated if is empty and bot is started once
   # please fill it afterwards
   device_id:
+  # avatar url of type mxc
+  # if set to remove avatar get removed
+  avatar:
 plugins:
   - github.js
 webserver:
