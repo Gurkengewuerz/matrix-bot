@@ -51,7 +51,7 @@ function init() {
         if (buildResult === "running") {        // Started
             matrixMessage += "has been started ⚙";
         } else if (buildResult === "success") {
-            matrixMessage += "has finished with status <font color=\"#00FF00\">**success**</font> ☑";
+            matrixMessage += "has finished with status <font color=\"#00FF00\">**success**</font> 🎉";
         } else if (buildResult === "failed") {
             matrixMessage += "has <font color=\"#FF0000\">**failed**</font> ❌";
         } else if (buildResult === "interrupted") {
