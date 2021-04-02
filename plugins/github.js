@@ -60,10 +60,10 @@ function init() {
 
                 let matrixMessage = "";
                 if (status === "success" || status === "completed") {
-                    matrixMessage += "A [pipeline](" + pipeline_url + ") event ran successfully! **Hooray!**\n";
+                    matrixMessage += "A [pipeline](" + pipeline_url + ") event ran successfully! **Hooray!** 🎉\n";
                     matrixMessage += "The pipeline on [**" + project_name + "**](" + project_url + ") was successful.\n";
                 } else if (status === "failure") {
-                    matrixMessage += "A [pipeline](" + pipeline_url + ") event failed! **Blame!**\n";
+                    matrixMessage += "A [pipeline](" + pipeline_url + ") event failed! **Blame!** 😌\n";
                     matrixMessage += "The project [**" + project_name + "**](" + project_url + ") has failed.\n";
                 }
                 matrixMessage += "Pusher: *" + user + "*\tBranch: *" + pipeline_branch + "*\tCommit: [*" + commit_id.substring(-1, 8) + "*](" + commit_url + ")\tDuration: *" + duration_hra + "*";
@@ -85,7 +85,7 @@ function init() {
             SendMessage(matrixRoom, matrixMessage);
         } else if (event === "ping") {
             LogInfo("Received GitHub ping");
-            SendMessage(matrixRoom, "Yeah! I received a GitHub ping! It seems like everything is set up perfectly. 💖");
+            SendMessage(matrixRoom, "Yeah! I received a GitHub from *" + repoName + "* ping! It seems like everything is set up perfectly. 💖");
         } else {
             LogInfo("unwanted event " + event);
         }
@@ -108,7 +108,7 @@ function onMessage(data) {
             res.response = "Hey 👋 I'm here to help. 🧃";
             break;
         case "list":
-            res.response = "I listen on the following repositories:  \n";
+            res.response = "I listen on the following repositories 🦻  \n";
             try {
                 let rows = DBQuery("SELECT * FROM github WHERE room_id = ?", "string", data.roomID);
                 if (rows.length === 0) {
