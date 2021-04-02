@@ -60,10 +60,10 @@ function init() {
 
                 let matrixMessage = "";
                 if (status === "success" || status === "completed") {
-                    matrixMessage += "A [pipeline](" + pipeline_url + ") event ran successfully! **Hooray!** 🎉\n";
+                    matrixMessage += "A [pipeline](" + pipeline_url + ") event ran successfully! <font color=\"#00FF00\">**Hooray!**</font> 🎉\n";
                     matrixMessage += "The pipeline on [**" + project_name + "**](" + project_url + ") was successful.\n";
                 } else if (status === "failure") {
-                    matrixMessage += "A [pipeline](" + pipeline_url + ") event failed! **Blame!** 😌\n";
+                    matrixMessage += "A [pipeline](" + pipeline_url + ") event failed! <font color=\"#FF0000\">**Blame!**</font> 😌\n";
                     matrixMessage += "The project [**" + project_name + "**](" + project_url + ") has failed.\n";
                 }
                 matrixMessage += "Pusher: *" + user + "*\tBranch: *" + pipeline_branch + "*\tCommit: [*" + commit_id.substring(-1, 8) + "*](" + commit_url + ")\tDuration: *" + duration_hra + "*";
