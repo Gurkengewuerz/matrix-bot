@@ -6,6 +6,7 @@ A plugin-based Matrix bot system written in Go.
 
 - [github.js](https://github.com/Gurkengewuerz/matrix-bot/blob/main/plugins/github.js) responds to GitHub Event Webhooks
   like pipeline events or push events.
+- [teamcity.js](https://github.com/Gurkengewuerz/matrix-bot/blob/main/plugins/teamcity.js) responds to [tcWebHooks](https://github.com/tcplugins/tcWebHooks) `Legacy Webhook (JSON)` requests
 
 # Configuration ✒
 
@@ -48,3 +49,21 @@ For cross-compiling from a newer Linux Distro (i.e. Windows WSL) to an older lin
 Encryption is supported using the E2EE aware proxy daemon [pantalaimon](https://github.com/matrix-org/pantalaimon).  
 Please follow the installation instructions in their repository. Afterwards you should set the Homeserver in the bot
 config to pantalaimon. 
+
+# Plugin Setup
+
+### GitHub `github.js`
+1. Active `github.js` in the `config.yaml`
+2. (Re)start your bot
+3. Test if plugin is loaded with `!gh ping`
+4. Add your repository with `!gh add <username>/<repo>`
+5. Get Webhook URL with `!gh webhook`
+6. Add Webhook to your GitHub repository/project and select your wanted events
+
+### TeamCity `teamcity.js`
+1. Active `teamcity.js` in the `config.yaml`
+2. (Re)start your bot
+3. Test if plugin is loaded with `!tc ping`
+4. Add your Build configuration (build config id) with `!tc add <build config id>`
+5. Get Webhook URL with `!tc webhook`
+6. Add a `Legacy Webhook (JSON)` to your project and select your wanted events
