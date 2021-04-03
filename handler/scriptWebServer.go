@@ -107,5 +107,5 @@ func (pm *PluginHandler) scriptAddRoute(path goja.Value, method goja.Value, call
 		panic(pm.vm.ToValue("unknown http method"))
 	}
 	pm.routeCount++
-	pm.Logger.WithField("script", currentPluginName).Debugf("added route %v for script", path.String())
+	pm.Logger.WithField("script", currentPluginName).Debugf("added route %v", path.String())
 }

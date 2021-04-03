@@ -1,11 +1,13 @@
 package types
 
 type Message struct {
-	Message   string
-	Response  string
-	RoomID    string
-	EventType string
-	Canceled  bool
+	Message         string
+	Response        string
+	Sender          string
+	SenderLocalPart string
+	RoomID          string
+	EventType       string
+	Canceled        bool
 }
 
 type HTTPCall struct {

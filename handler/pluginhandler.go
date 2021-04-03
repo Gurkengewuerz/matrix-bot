@@ -96,7 +96,7 @@ func (pm *PluginHandler) Init() error {
 		pm.currentPlugin = &plugin
 		_, err := pm.vm.RunString(plugin.data)
 		if err != nil {
-			pm.Logger.Errorf("failed to load plugin %v", plugin.name)
+			pm.Logger.Errorf("failed to load plugin %v:\n%v", plugin.name, err)
 			pm.mutex.Unlock()
 			continue
 		}
@@ -138,14 +138,14 @@ func (pm *PluginHandler) Init() error {
 func (pm *PluginHandler) setupVM() error {
 	pm.vm.SetFieldNameMapper(goja.UncapFieldNameMapper())
 	functions := map[string]interface{}{
-		"LogInfo":  pm.scriptLoggerInfo,
-		"LogError": pm.scriptLoggerError,
-		"DBPS":     pm.scriptDBPreparedStatement,
-		"DBQuery":  pm.scriptDBQuery,
-		"AddRoute": pm.scriptAddRoute,
-		"SHA256":   pm.scriptSHA256,
-		"HumanizeSeconds":   pm.scriptHumanizeSeconds,
-		"SendMessage":   pm.scriptSendMessage,
+		"LogInfo":         pm.scriptLoggerInfo,
+		"LogError":        pm.scriptLoggerError,
+		"DBPS":            pm.scriptDBPreparedStatement,
+		"DBQuery":         pm.scriptDBQuery,
+		"AddRoute":        pm.scriptAddRoute,
+		"SHA256":          pm.scriptSHA256,
+		"HumanizeSeconds": pm.scriptHumanizeSeconds,
+		"SendMessage":     pm.scriptSendMessage,
 	}
 
 	for name, function := range functions {
@@ -176,12 +176,16 @@ func (pm *PluginHandler) Handle(evt *event.Event, msg string) {
 
 	msg = strings.TrimSpace(msg)
 
+	localpart, _, _ := evt.Sender.Parse()
+
 	packet := types.Message{
-		Message:   msg,
-		Response:  "",
-		RoomID:    evt.RoomID.String(),
-		EventType: evt.Type.String(),
-		Canceled:  false,
+		Message:         msg,
+		Response:        "",
+		RoomID:          evt.RoomID.String(),
+		EventType:       evt.Type.String(),
+		Canceled:        false,
+		Sender:          evt.Sender.String(),
+		SenderLocalPart: localpart,
 	}
 
 	for _, plugin := range pm.loadedPlugins {

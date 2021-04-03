@@ -7,6 +7,7 @@ A plugin-based Matrix bot system written in Go.
 - [github.js](https://github.com/Gurkengewuerz/matrix-bot/blob/main/plugins/github.js) responds to GitHub Event Webhooks
   like pipeline events or push events.
 - [teamcity.js](https://github.com/Gurkengewuerz/matrix-bot/blob/main/plugins/teamcity.js) responds to [tcWebHooks](https://github.com/tcplugins/tcWebHooks) `Legacy Webhook (JSON)` requests
+- [dice.js](https://github.com/Gurkengewuerz/matrix-bot/blob/main/plugins/dice.js) a simple dice rolling bot
 
 # Configuration ✒
 
