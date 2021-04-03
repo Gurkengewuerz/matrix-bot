@@ -7,6 +7,7 @@ require (
 	github.com/fasthttp/router v1.3.10
 	github.com/mattn/go-colorable v0.1.8
 	github.com/mattn/go-sqlite3 v1.14.6
+	github.com/robfig/cron/v3 v3.0.1
 	github.com/russross/blackfriday/v2 v2.1.0
 	github.com/sirupsen/logrus v1.8.1
 	github.com/valyala/fasthttp v1.23.0

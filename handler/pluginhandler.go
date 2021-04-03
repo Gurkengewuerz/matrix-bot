@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/dop251/goja"
 	"github.com/fasthttp/router"
+	"github.com/robfig/cron/v3"
 	_ "github.com/russross/blackfriday/v2"
 	"github.com/sirupsen/logrus"
 	"github.com/valyala/fasthttp"
@@ -26,6 +27,7 @@ type Script struct {
 	name  string
 	data  string
 	vm    *goja.Runtime
+	cron  *cron.Cron
 	mutex *sync.Mutex
 }
 
@@ -77,7 +79,10 @@ func (pm *PluginHandler) Init() error {
 				data:  string(scriptData),
 				vm:    vm,
 				mutex: &sync.Mutex{},
+				cron:  cron.New(),
 			}
+
+			script.cron.Start()
 
 			err = pm.setupVM(&script)
 			if err != nil {
@@ -152,6 +157,7 @@ func (pm *PluginHandler) setupVM(s *Script) error {
 		"SHA256":          pm.scriptSHA256,
 		"HumanizeSeconds": pm.scriptHumanizeSeconds,
 		"SendMessage":     pm.scriptSendMessage,
+		"AddCron":         pm.scriptAddCron,
 	}
 
 	for name, function := range functions {

@@ -49,7 +49,7 @@ func (pm *PluginHandler) scriptAddRoute(path goja.Value, method goja.Value, call
 			headerData[string(key)] = string(i)
 		})
 
-		res, err := cbGoFunc(goja.Undefined(), currentVM.ToValue(types.HTTPCall{
+		res, err := cbGoFunc(currentVM.ToValue(pm.Config), currentVM.ToValue(types.HTTPCall{
 			MatchedPath: path.String(),
 			Path:        string(ctx.Path()),
 			StatusCode:  200,
