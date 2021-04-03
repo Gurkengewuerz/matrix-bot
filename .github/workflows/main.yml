@@ -29,6 +29,7 @@ jobs:
           mkdir build/
           mv matrix-bot build/
           mv plugins/ build/
+          mv config.yaml.sample build/
       - uses: actions/upload-artifact@v2
         with:
           name: matrix-bot
