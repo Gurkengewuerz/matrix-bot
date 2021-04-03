@@ -8,7 +8,7 @@ import (
 func (pm *PluginHandler) scriptDBQuery(sql goja.Value, args ...goja.Value) goja.Value {
 	pm.Logger.WithField("script", pm.currentPlugin.name).Debug("scriptDBQuery()")
 	if len(args)%2 != 0 {
-		panic(pm.vm.ToValue("args has to be of factor two"))
+		panic(pm.currentPlugin.vm.ToValue("args has to be of factor two"))
 	}
 
 	data := make([]interface{}, len(args)/2)
@@ -74,19 +74,19 @@ func (pm *PluginHandler) scriptDBQuery(sql goja.Value, args ...goja.Value) goja.
 		result = append(result, container)
 	}
 
-	return pm.vm.ToValue(result)
+	return pm.currentPlugin.vm.ToValue(result)
 }
 
 func (pm *PluginHandler) scriptDBPreparedStatement(sql goja.Value, args ...goja.Value) goja.Value {
 	pm.Logger.WithField("script", pm.currentPlugin.name).Debug("scriptDBPreparedStatement()")
 	statement, err := pm.DB.Prepare(sql.String())
 	if err != nil {
-		panic(pm.vm.ToValue(err))
+		panic(pm.currentPlugin.vm.ToValue(err))
 	}
 	defer statement.Close()
 
 	if len(args)%2 != 0 {
-		panic(pm.vm.ToValue("args has to be of factor two"))
+		panic(pm.currentPlugin.vm.ToValue("args has to be of factor two"))
 	}
 
 	data := make([]interface{}, len(args)/2)
@@ -113,13 +113,13 @@ func (pm *PluginHandler) scriptDBPreparedStatement(sql goja.Value, args ...goja.
 			data[i] = nil
 			break
 		default:
-			panic(pm.vm.ToValue("unknown data type"))
+			panic(pm.currentPlugin.vm.ToValue("unknown data type"))
 		}
 	}
 
 	_, err = statement.Exec(data...)
 	if err != nil {
-		panic(pm.vm.ToValue(err))
+		panic(pm.currentPlugin.vm.ToValue(err))
 	}
 
 	return goja.Undefined()

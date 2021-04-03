@@ -1,16 +1,17 @@
+const MAX_VALUE = 5 * 10 ^ 6;
+
 function init() {
 
 }
 
+function getRndInteger(min, max) {
+    return Math.floor(Math.random() * (max - min)) + min;
+}
+
 function onMessage(data) {
-    const MAX_VALUE = 5 * 10 ^ 6;
     let res = Object.assign({}, data);
     if (!res.message.startsWith("!dice")) return;
     let args = res.message.split(" ");
-
-    function getRndInteger (min, max) {
-        return Math.floor(Math.random() * (max - min)) + min;
-    }
 
     if (args.length <= 1) {
         const rndDice = getRndInteger(1, 7);

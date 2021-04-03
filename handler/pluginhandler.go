@@ -23,8 +23,10 @@ import (
 )
 
 type Script struct {
-	name string
-	data string
+	name  string
+	data  string
+	vm    *goja.Runtime
+	mutex *sync.Mutex
 }
 
 type PluginHandler struct {
@@ -36,14 +38,12 @@ type PluginHandler struct {
 	netListener   net.Listener
 	loadedPlugins []Script
 	currentPlugin *Script
-	vm            *goja.Runtime
-	mutex         sync.Mutex
 	router        *router.Router
 	routeCount    int16
 }
 
 func (pm *PluginHandler) Index(ctx *fasthttp.RequestCtx) {
-	ctx.WriteString("By mc8051.de")
+	_, _ = ctx.WriteString("By mc8051.de")
 }
 
 func (pm *PluginHandler) IsPluginEnabled(e string) bool {
@@ -59,13 +59,7 @@ func (pm *PluginHandler) Init() error {
 	pm.router = router.New()
 	pm.router.GET("/", pm.Index)
 
-	pm.vm = goja.New()
-	err := pm.setupVM()
-	if err != nil {
-		panic(err)
-	}
-
-	err = filepath.Walk(pm.PluginDir, func(path string, info os.FileInfo, err error) error {
+	err := filepath.Walk(pm.PluginDir, func(path string, info os.FileInfo, err error) error {
 		if path == pm.PluginDir {
 			return nil
 		}
@@ -75,10 +69,28 @@ func (pm *PluginHandler) Init() error {
 			if err != nil {
 				return fmt.Errorf("failed to read data %v", path)
 			}
-			pm.loadedPlugins = append(pm.loadedPlugins, Script{
-				name: info.Name(),
-				data: string(scriptData),
-			})
+
+			vm := goja.New()
+
+			script := Script{
+				name:  info.Name(),
+				data:  string(scriptData),
+				vm:    vm,
+				mutex: &sync.Mutex{},
+			}
+
+			err = pm.setupVM(&script)
+			if err != nil {
+				panic(err)
+			}
+
+			_, err = vm.RunString(script.data)
+			if err != nil {
+				pm.Logger.Errorf("failed to load plugin %v:\n%v", script.name, err)
+				return nil
+			}
+
+			pm.loadedPlugins = append(pm.loadedPlugins, script)
 		}
 
 		return nil
@@ -92,29 +104,23 @@ func (pm *PluginHandler) Init() error {
 	}
 
 	for _, plugin := range pm.loadedPlugins {
-		pm.mutex.Lock()
+		plugin.mutex.Lock()
 		pm.currentPlugin = &plugin
-		_, err := pm.vm.RunString(plugin.data)
-		if err != nil {
-			pm.Logger.Errorf("failed to load plugin %v:\n%v", plugin.name, err)
-			pm.mutex.Unlock()
-			continue
-		}
 
-		initFn, ok := goja.AssertFunction(pm.vm.Get("init"))
+		initFn, ok := goja.AssertFunction(plugin.vm.Get("init"))
 		if !ok {
 			pm.Logger.Errorf("init of plugin %v not found", plugin.name)
-			pm.mutex.Unlock()
+			plugin.mutex.Unlock()
 			continue
 		}
 
-		_, err = initFn(pm.vm.ToValue(pm.Config))
+		_, err = initFn(plugin.vm.ToValue(pm.Config))
 		if err != nil {
 			pm.Logger.Errorf("failed to init plugin %v", plugin.name)
-			pm.mutex.Unlock()
+			plugin.mutex.Unlock()
 			continue
 		}
-		pm.mutex.Unlock()
+		plugin.mutex.Unlock()
 		pm.Logger.Infof("loaded plugin %v", plugin.name)
 	}
 
@@ -135,8 +141,8 @@ func (pm *PluginHandler) Init() error {
 	return nil
 }
 
-func (pm *PluginHandler) setupVM() error {
-	pm.vm.SetFieldNameMapper(goja.UncapFieldNameMapper())
+func (pm *PluginHandler) setupVM(s *Script) error {
+	s.vm.SetFieldNameMapper(goja.UncapFieldNameMapper())
 	functions := map[string]interface{}{
 		"LogInfo":         pm.scriptLoggerInfo,
 		"LogError":        pm.scriptLoggerError,
@@ -149,7 +155,7 @@ func (pm *PluginHandler) setupVM() error {
 	}
 
 	for name, function := range functions {
-		err := pm.vm.Set(name, function)
+		err := s.vm.Set(name, function)
 		if err != nil {
 			return err
 		}
@@ -159,12 +165,12 @@ func (pm *PluginHandler) setupVM() error {
 }
 
 func (pm *PluginHandler) End() {
-	pm.netListener.Close()
+	_ = pm.netListener.Close()
 }
 
 func (pm *PluginHandler) response(rID id.RoomID, msg string) {
 	content := format.RenderMarkdown(msg, true, true)
-	pm.Client.SendMessageEvent(rID, event.EventMessage, &content)
+	_, _ = pm.Client.SendMessageEvent(rID, event.EventMessage, &content)
 	//pm.Client.SendText(rID, msg)
 }
 
@@ -198,35 +204,29 @@ func (pm *PluginHandler) Handle(evt *event.Event, msg string) {
 			break
 		}
 		packet.Response = ""
-		pm.mutex.Lock()
+		plugin.mutex.Lock()
 		pm.currentPlugin = &plugin
-		_, err := pm.vm.RunString(plugin.data)
-		if err != nil {
-			pluginLogger.Error("failed to load plugin")
-			pm.mutex.Unlock()
-			continue
-		}
 
-		onMessageFunc, ok := goja.AssertFunction(pm.vm.Get("onMessage"))
+		onMessageFunc, ok := goja.AssertFunction(plugin.vm.Get("onMessage"))
 		if !ok {
 			pluginLogger.Error("onMessage not found")
-			pm.mutex.Unlock()
+			plugin.mutex.Unlock()
 			continue
 		}
 
-		res, err := onMessageFunc(pm.vm.ToValue(pm.Config), pm.vm.ToValue(packet))
+		res, err := onMessageFunc(plugin.vm.ToValue(pm.Config), plugin.vm.ToValue(packet))
 		if err != nil {
 			pluginLogger.Error("failed to send message to plugin")
-			pm.mutex.Unlock()
+			plugin.mutex.Unlock()
 			continue
 		}
 
 		// Skipping if not implemented or just returned
 		if !res.StrictEquals(goja.Undefined()) {
-			err := pm.vm.ExportTo(res, &packet)
+			err := plugin.vm.ExportTo(res, &packet)
 			if err != nil {
 				pluginLogger.Error("failed to parse message response from script")
-				pm.mutex.Unlock()
+				plugin.mutex.Unlock()
 				continue
 			}
 			if packet.Response != "" {
@@ -237,6 +237,6 @@ func (pm *PluginHandler) Handle(evt *event.Event, msg string) {
 			}
 		}
 
-		pm.mutex.Unlock()
+		plugin.mutex.Unlock()
 	}
 }

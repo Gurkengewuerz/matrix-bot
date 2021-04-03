@@ -11,6 +11,8 @@ import (
 
 func (pm *PluginHandler) scriptAddRoute(path goja.Value, method goja.Value, callback goja.Value) {
 	currentPluginName := pm.currentPlugin.name
+	currentMutex := pm.currentPlugin.mutex
+	currentVM := pm.currentPlugin.vm
 	pm.Logger.WithField("script", currentPluginName).Debug("AddRoute()")
 
 	routerCallback := func(ctx *fasthttp.RequestCtx) {
@@ -18,19 +20,19 @@ func (pm *PluginHandler) scriptAddRoute(path goja.Value, method goja.Value, call
 			"script": currentPluginName,
 			"path":   path.String(),
 		})
-		pm.mutex.Lock()
+		currentMutex.Lock()
 
-		_, err := pm.vm.RunString(callback.String())
+		_, err := currentVM.RunString(callback.String())
 		if err != nil {
 			routerLog.Error("failed to load callback")
-			pm.mutex.Unlock()
+			currentMutex.Unlock()
 			return
 		}
 
-		cbGoFunc, ok := goja.AssertFunction(pm.vm.Get("callback"))
+		cbGoFunc, ok := goja.AssertFunction(currentVM.Get("callback"))
 		if !ok {
 			routerLog.Error("failed to load callback")
-			pm.mutex.Unlock()
+			currentMutex.Unlock()
 			return
 		}
 
@@ -39,7 +41,7 @@ func (pm *PluginHandler) scriptAddRoute(path goja.Value, method goja.Value, call
 		if len(buf) > 0 {
 			err = json.Unmarshal(ctx.PostBody(), &jsonMap)
 			if err != nil {
-				panic(pm.vm.ToValue(err))
+				panic(currentVM.ToValue(err))
 			}
 		}
 
@@ -53,7 +55,7 @@ func (pm *PluginHandler) scriptAddRoute(path goja.Value, method goja.Value, call
 			headerData[string(key)] = string(i)
 		})
 
-		res, err := cbGoFunc(goja.Undefined(), pm.vm.ToValue(types.HTTPCall{
+		res, err := cbGoFunc(goja.Undefined(), currentVM.ToValue(types.HTTPCall{
 			MatchedPath: path.String(),
 			Path:        string(ctx.Path()),
 			StatusCode:  200,
@@ -65,7 +67,7 @@ func (pm *PluginHandler) scriptAddRoute(path goja.Value, method goja.Value, call
 		}))
 		if err != nil {
 			routerLog.Errorf("failed to run callback function: %v", err)
-			pm.mutex.Unlock()
+			currentMutex.Unlock()
 			return
 		}
 
@@ -76,10 +78,10 @@ func (pm *PluginHandler) scriptAddRoute(path goja.Value, method goja.Value, call
 			ctx.SetBodyString(`{"ok": true}`)
 		} else {
 			parsedResponse := types.HTTPCall{}
-			err := pm.vm.ExportTo(res, &parsedResponse)
+			err := currentVM.ExportTo(res, &parsedResponse)
 			if err != nil {
 				routerLog.Error("failed to parse response from script")
-				pm.mutex.Unlock()
+				currentMutex.Unlock()
 				return
 			}
 			ctx.SetStatusCode(parsedResponse.StatusCode)
@@ -87,7 +89,7 @@ func (pm *PluginHandler) scriptAddRoute(path goja.Value, method goja.Value, call
 			ctx.SetBodyString(parsedResponse.Response)
 		}
 
-		pm.mutex.Unlock()
+		currentMutex.Unlock()
 	}
 
 	switch strings.ToUpper(method.String()) {
@@ -104,7 +106,7 @@ func (pm *PluginHandler) scriptAddRoute(path goja.Value, method goja.Value, call
 		pm.router.DELETE(path.String(), routerCallback)
 		break
 	default:
-		panic(pm.vm.ToValue("unknown http method"))
+		panic(currentVM.ToValue("unknown http method"))
 	}
 	pm.routeCount++
 	pm.Logger.WithField("script", currentPluginName).Debugf("added route %v", path.String())

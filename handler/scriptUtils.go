@@ -14,9 +14,9 @@ func (pm *PluginHandler) scriptSHA256(val goja.Value) goja.Value {
 	h := sha256.New()
 	_, err := io.WriteString(h, val.String())
 	if err != nil {
-		panic(pm.vm.ToValue(err))
+		panic(pm.currentPlugin.vm.ToValue(err))
 	}
-	return pm.vm.ToValue(hex.EncodeToString(h.Sum(nil)))
+	return pm.currentPlugin.vm.ToValue(hex.EncodeToString(h.Sum(nil)))
 }
 
 const (
@@ -29,7 +29,7 @@ func (pm *PluginHandler) scriptHumanizeSeconds(val goja.Value) goja.Value {
 	d := time.Duration(val.ToInteger()) * time.Second
 
 	if d < day {
-		return pm.vm.ToValue(d.String())
+		return pm.currentPlugin.vm.ToValue(d.String())
 	}
 
 	var b strings.Builder
@@ -44,5 +44,5 @@ func (pm *PluginHandler) scriptHumanizeSeconds(val goja.Value) goja.Value {
 	d -= days * day
 	_, _ = fmt.Fprintf(&b, "%dd%s", days, d)
 
-	return pm.vm.ToValue(b.String())
+	return pm.currentPlugin.vm.ToValue(b.String())
 }
