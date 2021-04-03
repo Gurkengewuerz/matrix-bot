@@ -6,3 +6,4 @@ matrix-github-bot
 *.db
 config.yaml
 logo.png
+plugins/test.js

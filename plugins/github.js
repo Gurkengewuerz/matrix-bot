@@ -5,93 +5,95 @@ function init() {
     } catch (e) {
         LogError(e);
     }
-    AddRoute("/github/webhook/{hash}", "POST", function callback(data) {
-        //LogInfo(JSON.stringify(data));
-        const alertWhen = ["success", "failure", "completed"];
+    AddRoute("/github/webhook/{hash}", "POST", webhookCallback);
+}
 
-        let res = Object.assign({}, data);
-        let matrixRoom = "";
-        let roomRepositores = [];
+function webhookCallback(data) {
+    //LogInfo(JSON.stringify(data));
+    const alertWhen = ["success", "failure", "completed"];
 
-        try {
-            let rows = DBQuery("SELECT room_id, repo FROM github WHERE room_hash = ?", "string", data.params.hash);
-            if (rows.length === 0) {
-                return res;
-            }
-            for (row of rows) {
-                matrixRoom = row[0];
-                roomRepositores.push(row[1]);
-            }
-        } catch (e) {
-            LogError("Whhops. Couldn't get data from database during http request");
+    let res = Object.assign({}, data);
+    let matrixRoom = "";
+    let roomRepositores = [];
+
+    try {
+        let rows = DBQuery("SELECT room_id, repo FROM github WHERE room_hash = ?", "string", data.params.hash);
+        if (rows.length === 0) {
             return res;
         }
-
-        const event = data.headers["X-Github-Event"] || "";
-        const body = data.body || {};
-        const repoName = body.repository.full_name || "";
-
-        if (!roomRepositores.includes(repoName.toLowerCase())) {
-            LogInfo("room is not listening for this repository");
-            return res
+        for (row of rows) {
+            matrixRoom = row[0];
+            roomRepositores.push(row[1]);
         }
-
-        if (event === "check_run") {
-            LogInfo("pipeline event");
-            const status = body.check_run.status;
-            if (!alertWhen.includes(status)) {
-                LogInfo("pipeline status ignored " + status);
-            } else {
-                const user = body.sender.login;
-                const project_name = body.repository.name;
-                const project_url = body.repository.html_url;
-                const pipeline_id = body.check_run.id;
-                const pipeline_branch = body.check_run.check_suite.head_branch;
-                const pipeline_started = body.check_run.started_at;
-                const pipeline_finished = body.check_run.completed_at;
-                const commit_id = body.check_run.check_suite.head_sha;
-                const commit_url = project_url + "/commit/" + commit_id;
-                const pipeline_url = project_url + "/runs/" + pipeline_id;
-
-                const date_started = new Date(pipeline_started);
-                const date_finished = new Date(pipeline_finished);
-
-                const duration_hra = HumanizeSeconds((date_finished.getTime() - date_started.getTime()) / 1000);
-
-                let matrixMessage = "";
-                if (status === "success" || status === "completed") {
-                    matrixMessage += "A [pipeline](" + pipeline_url + ") event ran successfully! <font color=\"#00FF00\">**Hooray!**</font> 🎉\n";
-                    matrixMessage += "The pipeline on [**" + project_name + "**](" + project_url + ") was successful.\n";
-                } else if (status === "failure") {
-                    matrixMessage += "A [pipeline](" + pipeline_url + ") event failed! <font color=\"#FF0000\">**Blame!**</font> 😌\n";
-                    matrixMessage += "The project [**" + project_name + "**](" + project_url + ") has failed.\n";
-                }
-                matrixMessage += "Pusher: *" + user + "*\tBranch: *" + pipeline_branch + "*\tCommit: [*" + commit_id.substring(-1, 8) + "*](" + commit_url + ")\tDuration: *" + duration_hra + "*";
-                SendMessage(matrixRoom, matrixMessage);
-            }
-        } else if (event === "push") {
-            LogInfo("push event");
-            let matrixMessage = "";
-            matrixMessage += "A new push was made to [" + repoName + "](https://github.com/" + repoName + ")  \n";
-
-            for (commit of body.commits) {
-                const user = commit.committer.name;
-                const commit_url = commit.url;
-                const commit_id = commit.id;
-                const message = commit.message;
-
-                matrixMessage += "[" + commit_id.substring(-1, 8) + "](" + commit_url + ") by " + user + " ```" + message + "```\n";
-            }
-            SendMessage(matrixRoom, matrixMessage);
-        } else if (event === "ping") {
-            LogInfo("Received GitHub ping");
-            SendMessage(matrixRoom, "Yeah! I received a GitHub from *" + repoName + "* ping! It seems like everything is set up perfectly. 💖");
-        } else {
-            LogInfo("unwanted event " + event);
-        }
-
+    } catch (e) {
+        LogError("Whhops. Couldn't get data from database during http request");
         return res;
-    });
+    }
+
+    const event = data.headers["X-Github-Event"] || "";
+    const body = data.body || {};
+    const repoName = body.repository.full_name || "";
+
+    if (!roomRepositores.includes(repoName.toLowerCase())) {
+        LogInfo("room is not listening for this repository");
+        return res
+    }
+
+    if (event === "check_run") {
+        LogInfo("pipeline event");
+        const status = body.check_run.status;
+        if (!alertWhen.includes(status)) {
+            LogInfo("pipeline status ignored " + status);
+        } else {
+            const user = body.sender.login;
+            const project_name = body.repository.name;
+            const project_url = body.repository.html_url;
+            const pipeline_id = body.check_run.id;
+            const pipeline_branch = body.check_run.check_suite.head_branch;
+            const pipeline_started = body.check_run.started_at;
+            const pipeline_finished = body.check_run.completed_at;
+            const commit_id = body.check_run.check_suite.head_sha;
+            const commit_url = project_url + "/commit/" + commit_id;
+            const pipeline_url = project_url + "/runs/" + pipeline_id;
+
+            const date_started = new Date(pipeline_started);
+            const date_finished = new Date(pipeline_finished);
+
+            const duration_hra = HumanizeSeconds((date_finished.getTime() - date_started.getTime()) / 1000);
+
+            let matrixMessage = "";
+            if (status === "success" || status === "completed") {
+                matrixMessage += "A [pipeline](" + pipeline_url + ") event ran successfully! <font color=\"#00FF00\">**Hooray!**</font> 🎉\n";
+                matrixMessage += "The pipeline on [**" + project_name + "**](" + project_url + ") was successful.\n";
+            } else if (status === "failure") {
+                matrixMessage += "A [pipeline](" + pipeline_url + ") event failed! <font color=\"#FF0000\">**Blame!**</font> 😌\n";
+                matrixMessage += "The project [**" + project_name + "**](" + project_url + ") has failed.\n";
+            }
+            matrixMessage += "Pusher: *" + user + "*\tBranch: *" + pipeline_branch + "*\tCommit: [*" + commit_id.substring(-1, 8) + "*](" + commit_url + ")\tDuration: *" + duration_hra + "*";
+            SendMessage(matrixRoom, matrixMessage);
+        }
+    } else if (event === "push") {
+        LogInfo("push event");
+        let matrixMessage = "";
+        matrixMessage += "A new push was made to [" + repoName + "](https://github.com/" + repoName + ")  \n";
+
+        for (commit of body.commits) {
+            const user = commit.committer.name;
+            const commit_url = commit.url;
+            const commit_id = commit.id;
+            const message = commit.message;
+
+            matrixMessage += "[" + commit_id.substring(-1, 8) + "](" + commit_url + ") by " + user + " ```" + message + "```\n";
+        }
+        SendMessage(matrixRoom, matrixMessage);
+    } else if (event === "ping") {
+        LogInfo("Received GitHub ping");
+        SendMessage(matrixRoom, "Yeah! I received a GitHub from *" + repoName + "* ping! It seems like everything is set up perfectly. 💖");
+    } else {
+        LogInfo("unwanted event " + event);
+    }
+
+    return res;
 }
 
 function onMessage(data) {

@@ -15,6 +15,14 @@ func (pm *PluginHandler) scriptAddRoute(path goja.Value, method goja.Value, call
 	currentVM := pm.currentPlugin.vm
 	pm.Logger.WithField("script", currentPluginName).Debug("AddRoute()")
 
+	var cbGoFunc goja.Callable
+	if f, ok := goja.AssertFunction(callback); ok {
+		cbGoFunc = f
+	} else {
+		pm.Logger.WithField("script", currentPluginName).Errorln("callback is not a function")
+		panic(currentVM.NewTypeError("Not a function"))
+	}
+
 	routerCallback := func(ctx *fasthttp.RequestCtx) {
 		routerLog := pm.Logger.WithFields(logrus.Fields{
 			"script": currentPluginName,
@@ -22,24 +30,10 @@ func (pm *PluginHandler) scriptAddRoute(path goja.Value, method goja.Value, call
 		})
 		currentMutex.Lock()
 
-		_, err := currentVM.RunString(callback.String())
-		if err != nil {
-			routerLog.Error("failed to load callback")
-			currentMutex.Unlock()
-			return
-		}
-
-		cbGoFunc, ok := goja.AssertFunction(currentVM.Get("callback"))
-		if !ok {
-			routerLog.Error("failed to load callback")
-			currentMutex.Unlock()
-			return
-		}
-
 		jsonMap := make(map[string]interface{})
 		buf := ctx.PostBody()
 		if len(buf) > 0 {
-			err = json.Unmarshal(ctx.PostBody(), &jsonMap)
+			err := json.Unmarshal(ctx.PostBody(), &jsonMap)
 			if err != nil {
 				panic(currentVM.ToValue(err))
 			}

@@ -116,7 +116,7 @@ func (pm *PluginHandler) Init() error {
 
 		_, err = initFn(plugin.vm.ToValue(pm.Config))
 		if err != nil {
-			pm.Logger.Errorf("failed to init plugin %v", plugin.name)
+			pm.Logger.Errorf("failed to init plugin %v:\n%v", plugin.name, err)
 			plugin.mutex.Unlock()
 			continue
 		}

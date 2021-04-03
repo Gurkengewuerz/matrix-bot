@@ -5,69 +5,71 @@ function init() {
     } catch (e) {
         LogError(e);
     }
-    AddRoute("/teamcity/webhook/{hash}", "POST", function callback(data) {
-        //LogInfo(JSON.stringify(data));
-        let res = Object.assign({}, data);
+    AddRoute("/teamcity/webhook/{hash}", "POST", webhookCallback);
+}
 
-        let matrixRoom = "";
-        let matrixMessage = "";
-        let roomBuildIDS = [];
+function webhookCallback(data) {
+    //LogInfo(JSON.stringify(data));
+    let res = Object.assign({}, data);
 
-        try {
-            let rows = DBQuery("SELECT room_id, build_id FROM teamcity WHERE room_hash = ?", "string", data.params.hash);
-            if (rows.length === 0) {
-                return res;
-            }
-            for (row of rows) {
-                matrixRoom = row[0];
-                roomBuildIDS.push(row[1]);
-            }
-        } catch (e) {
-            LogError("Whhops. Couldn't get data from database during http request");
+    let matrixRoom = "";
+    let matrixMessage = "";
+    let roomBuildIDS = [];
+
+    try {
+        let rows = DBQuery("SELECT room_id, build_id FROM teamcity WHERE room_hash = ?", "string", data.params.hash);
+        if (rows.length === 0) {
             return res;
         }
-
-        const body = data.body.build || {buildTypeId: ""};
-        const buildID = body.buildTypeId || "";
-
-        if (!roomBuildIDS.includes(buildID.toLowerCase())) {
-            LogInfo("room is not listening for this repository");
-            return res;
+        for (row of rows) {
+            matrixRoom = row[0];
+            roomBuildIDS.push(row[1]);
         }
-
-        const buildResult = body.buildResult || "";
-
-        if (buildResult === "") {
-            LogInfo("unsupported event");
-            return res;
-        }
-
-        const buildFullName = body.buildFullName || "";
-        const buildStatusUrl = body.buildStatusUrl || "";
-        const triggeredBy = body.triggeredBy || "";
-
-        matrixMessage += "[" + buildFullName + "](" + buildStatusUrl + ") ";
-        // Test Projekt 123 / BuildConfigTest has finished. Status: success
-        if (buildResult === "running") {        // Started
-            matrixMessage += "has been started ⚙";
-        } else if (buildResult === "success") {
-            matrixMessage += "has finished with status <font color=\"#00FF00\">**success**</font> 🎉";
-        } else if (buildResult === "failed") {
-            matrixMessage += "has <font color=\"#FF0000\">**failed**</font> ❌";
-        } else if (buildResult === "interrupted") {
-            matrixMessage += "has been interrupted ‼";
-        } else {
-            matrixMessage += "Status: " + (buildResult.charAt(0).toUpperCase() + buildResult.slice(1));
-        }
-
-        if (triggeredBy !== "") {
-            matrixMessage += "\nTriggered by: " + triggeredBy;
-        }
-
-        SendMessage(matrixRoom, matrixMessage);
-
+    } catch (e) {
+        LogError("Whhops. Couldn't get data from database during http request");
         return res;
-    });
+    }
+
+    const body = data.body.build || {buildTypeId: ""};
+    const buildID = body.buildTypeId || "";
+
+    if (!roomBuildIDS.includes(buildID.toLowerCase())) {
+        LogInfo("room is not listening for this repository");
+        return res;
+    }
+
+    const buildResult = body.buildResult || "";
+
+    if (buildResult === "") {
+        LogInfo("unsupported event");
+        return res;
+    }
+
+    const buildFullName = body.buildFullName || "";
+    const buildStatusUrl = body.buildStatusUrl || "";
+    const triggeredBy = body.triggeredBy || "";
+
+    matrixMessage += "[" + buildFullName + "](" + buildStatusUrl + ") ";
+    // Test Projekt 123 / BuildConfigTest has finished. Status: success
+    if (buildResult === "running") {        // Started
+        matrixMessage += "has been started ⚙";
+    } else if (buildResult === "success") {
+        matrixMessage += "has finished with status <font color=\"#00FF00\">**success**</font> 🎉";
+    } else if (buildResult === "failed") {
+        matrixMessage += "has <font color=\"#FF0000\">**failed**</font> ❌";
+    } else if (buildResult === "interrupted") {
+        matrixMessage += "has been interrupted ‼";
+    } else {
+        matrixMessage += "Status: " + (buildResult.charAt(0).toUpperCase() + buildResult.slice(1));
+    }
+
+    if (triggeredBy !== "") {
+        matrixMessage += "\nTriggered by: " + triggeredBy;
+    }
+
+    SendMessage(matrixRoom, matrixMessage);
+
+    return res;
 }
 
 function onMessage(data) {
