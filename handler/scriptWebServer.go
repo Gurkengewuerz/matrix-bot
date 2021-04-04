@@ -5,7 +5,7 @@ import (
 	"github.com/dop251/goja"
 	"github.com/sirupsen/logrus"
 	"github.com/valyala/fasthttp"
-	"matrix-github-bot/types"
+	"matrix-bot/types"
 	"strings"
 )
 

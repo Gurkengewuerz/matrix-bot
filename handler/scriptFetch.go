@@ -3,7 +3,7 @@ package handler
 import (
 	"github.com/dop251/goja"
 	"io"
-	"matrix-github-bot/types"
+	"matrix-bot/types"
 	"net/http"
 	"net/url"
 	"strings"

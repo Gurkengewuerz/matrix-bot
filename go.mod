@@ -1,4 +1,4 @@
-module matrix-github-bot
+module matrix-bot
 
 go 1.16
 

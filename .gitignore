@@ -3,6 +3,8 @@ lib/*.so*
 include/olm/
 .env
 matrix-github-bot
+matrix-bot
+*.exe
 *.db
 config.yaml
 logo.png
