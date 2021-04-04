@@ -10,9 +10,9 @@ import (
 )
 
 func (pm *PluginHandler) scriptAddRoute(path goja.Value, method goja.Value, callback goja.Value) {
-	currentPluginName := pm.currentPlugin.name
-	currentMutex := pm.currentPlugin.mutex
-	currentVM := pm.currentPlugin.vm
+	currentPlugin := pm.currentPlugin
+	currentPluginName := currentPlugin.name
+	currentVM := currentPlugin.vm
 	pm.Logger.WithField("script", currentPluginName).Debug("AddRoute()")
 
 	var cbGoFunc goja.Callable
@@ -28,7 +28,8 @@ func (pm *PluginHandler) scriptAddRoute(path goja.Value, method goja.Value, call
 			"script": currentPluginName,
 			"path":   path.String(),
 		})
-		currentMutex.Lock()
+		pm.mutex.Lock()
+		pm.currentPlugin = currentPlugin
 
 		jsonMap := make(map[string]interface{})
 		buf := ctx.PostBody()
@@ -61,7 +62,7 @@ func (pm *PluginHandler) scriptAddRoute(path goja.Value, method goja.Value, call
 		}))
 		if err != nil {
 			routerLog.Errorf("failed to run callback function: %v", err)
-			currentMutex.Unlock()
+			pm.mutex.Unlock()
 			return
 		}
 
@@ -75,7 +76,7 @@ func (pm *PluginHandler) scriptAddRoute(path goja.Value, method goja.Value, call
 			err := currentVM.ExportTo(res, &parsedResponse)
 			if err != nil {
 				routerLog.Error("failed to parse response from script")
-				currentMutex.Unlock()
+				pm.mutex.Unlock()
 				return
 			}
 			ctx.SetStatusCode(parsedResponse.StatusCode)
@@ -83,7 +84,7 @@ func (pm *PluginHandler) scriptAddRoute(path goja.Value, method goja.Value, call
 			ctx.SetBodyString(parsedResponse.Response)
 		}
 
-		currentMutex.Unlock()
+		pm.mutex.Unlock()
 	}
 
 	switch strings.ToUpper(method.String()) {

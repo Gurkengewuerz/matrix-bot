@@ -5,10 +5,8 @@ import (
 )
 
 func (pm *PluginHandler) scriptAddCron(spec goja.Value, callback goja.Value) {
-	currentPluginName := pm.currentPlugin.name
-	currentMutex := pm.currentPlugin.mutex
-	currentVM := pm.currentPlugin.vm
-	currentCron := pm.currentPlugin.cron
+	currentPlugin := pm.currentPlugin
+	currentPluginName := currentPlugin.name
 
 	scriptLogger := pm.Logger.WithField("script", currentPluginName)
 
@@ -19,19 +17,14 @@ func (pm *PluginHandler) scriptAddCron(spec goja.Value, callback goja.Value) {
 		cbGoFunc = f
 	} else {
 		scriptLogger.Errorln("callback is not a function")
-		panic(currentVM.NewTypeError("Not a function"))
+		panic(currentPlugin.vm.NewTypeError("Not a function"))
 	}
 
-	_, err := currentCron.AddFunc(spec.String(), func() {
-		currentMutex.Lock()
-		_, _ = cbGoFunc(currentVM.ToValue(pm.Config))
-		currentMutex.Unlock()
+	pm.currentPlugin.crons = append(pm.currentPlugin.crons, &Cron{
+		cronTime: spec.ToInteger() * 60,
+		lastCron: 0,
+		callable: &cbGoFunc,
 	})
 
-	if err != nil {
-		scriptLogger.Errorln("failed to add cron", err)
-		panic(currentVM.NewTypeError("failed to add cron"))
-	}
-
-	scriptLogger.Debugf("added cron %v", spec.String())
+	scriptLogger.Debugf("added %v cron %vm", len(pm.currentPlugin.crons), spec.String())
 }

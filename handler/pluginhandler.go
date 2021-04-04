@@ -22,14 +22,20 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"time"
 )
+
+type Cron struct {
+	cronTime int64
+	lastCron int64
+	callable *goja.Callable
+}
 
 type Script struct {
 	name  string
 	data  string
 	vm    *goja.Runtime
-	cron  *cron.Cron
-	mutex *sync.Mutex
+	crons []*Cron
 }
 
 type PluginHandler struct {
@@ -39,11 +45,13 @@ type PluginHandler struct {
 	Config        *config.Config
 	Client        *mautrix.Client
 	netListener   net.Listener
-	loadedPlugins []Script
+	loadedPlugins []*Script
 	currentPlugin *Script
 	router        *router.Router
 	routeCount    int16
 	httpClient    *http.Client
+	cronContext   *cron.Cron
+	mutex         *sync.Mutex
 }
 
 func (pm *PluginHandler) Index(ctx *fasthttp.RequestCtx) {
@@ -64,6 +72,8 @@ func (pm *PluginHandler) Init() error {
 	pm.router.GET("/", pm.Index)
 
 	pm.httpClient = &http.Client{}
+	pm.mutex = &sync.Mutex{}
+	pm.cronContext = cron.New()
 
 	err := filepath.Walk(pm.PluginDir, func(path string, info os.FileInfo, err error) error {
 		if path == pm.PluginDir {
@@ -79,14 +89,11 @@ func (pm *PluginHandler) Init() error {
 			vm := goja.New()
 
 			script := Script{
-				name:  info.Name(),
-				data:  string(scriptData),
-				vm:    vm,
-				mutex: &sync.Mutex{},
-				cron:  cron.New(),
+				name: info.Name(),
+				data: string(scriptData),
+				vm:   vm,
+				crons: make([]*Cron, 0),
 			}
-
-			script.cron.Start()
 
 			err = pm.setupVM(&script)
 			if err != nil {
@@ -99,7 +106,7 @@ func (pm *PluginHandler) Init() error {
 				return nil
 			}
 
-			pm.loadedPlugins = append(pm.loadedPlugins, script)
+			pm.loadedPlugins = append(pm.loadedPlugins, &script)
 		}
 
 		return nil
@@ -113,25 +120,41 @@ func (pm *PluginHandler) Init() error {
 	}
 
 	for _, plugin := range pm.loadedPlugins {
-		plugin.mutex.Lock()
-		pm.currentPlugin = &plugin
+		pm.mutex.Lock()
+		pm.currentPlugin = plugin
 
 		initFn, ok := goja.AssertFunction(plugin.vm.Get("init"))
 		if !ok {
 			pm.Logger.Errorf("init of plugin %v not found", plugin.name)
-			plugin.mutex.Unlock()
+			pm.mutex.Unlock()
 			continue
 		}
 
 		_, err = initFn(plugin.vm.ToValue(pm.Config))
 		if err != nil {
 			pm.Logger.Errorf("failed to init plugin %v:\n%v", plugin.name, err)
-			plugin.mutex.Unlock()
+			pm.mutex.Unlock()
 			continue
 		}
-		plugin.mutex.Unlock()
+		pm.mutex.Unlock()
 		pm.Logger.Infof("loaded plugin %v", plugin.name)
 	}
+
+	_, _ = pm.cronContext.AddFunc("* * * * *", func() {
+		now := time.Now().Unix()
+		for _, plugin := range pm.loadedPlugins {
+			pm.mutex.Lock()
+			pm.currentPlugin = plugin
+			for _, pluginCron := range plugin.crons {
+				if now - pluginCron.lastCron >= pluginCron.cronTime {
+					pluginCron.lastCron = now
+					_, _ = (*pluginCron.callable)(plugin.vm.ToValue(pm.Config))
+				}
+			}
+			pm.mutex.Unlock()
+		}
+	})
+	pm.cronContext.Start()
 
 	pm.Logger.Infof("Loaded %v routes", pm.routeCount)
 
@@ -215,20 +238,20 @@ func (pm *PluginHandler) Handle(evt *event.Event, msg string) {
 			break
 		}
 		packet.Response = ""
-		plugin.mutex.Lock()
-		pm.currentPlugin = &plugin
+		pm.mutex.Lock()
+		pm.currentPlugin = plugin
 
 		onMessageFunc, ok := goja.AssertFunction(plugin.vm.Get("onMessage"))
 		if !ok {
 			pluginLogger.Error("onMessage not found")
-			plugin.mutex.Unlock()
+			pm.mutex.Unlock()
 			continue
 		}
 
 		res, err := onMessageFunc(plugin.vm.ToValue(pm.Config), plugin.vm.ToValue(packet))
 		if err != nil {
 			pluginLogger.Error("failed to send message to plugin")
-			plugin.mutex.Unlock()
+			pm.mutex.Unlock()
 			continue
 		}
 
@@ -237,7 +260,7 @@ func (pm *PluginHandler) Handle(evt *event.Event, msg string) {
 			err := plugin.vm.ExportTo(res, &packet)
 			if err != nil {
 				pluginLogger.Error("failed to parse message response from script")
-				plugin.mutex.Unlock()
+				pm.mutex.Unlock()
 				continue
 			}
 			if packet.Response != "" {
@@ -248,6 +271,6 @@ func (pm *PluginHandler) Handle(evt *event.Event, msg string) {
 			}
 		}
 
-		plugin.mutex.Unlock()
+		pm.mutex.Unlock()
 	}
 }
