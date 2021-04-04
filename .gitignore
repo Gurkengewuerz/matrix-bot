@@ -6,4 +6,7 @@ matrix-github-bot
 *.db
 config.yaml
 logo.png
-plugins/test.js
+plugins/
+!plugins/dice.js
+!plugins/teamcity.js
+!plugins/github.js
