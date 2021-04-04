@@ -20,3 +20,16 @@ type HTTPCall struct {
 	Params      map[string]interface{}
 	Headers     map[string]string
 }
+
+type HTTPRequest struct {
+	Url        string
+	Body        map[string]string
+	Headers     map[string]string
+	Method      string
+}
+
+type HTTPResponse struct {
+	StatusCode  int
+	Headers     map[string]string
+	Body        string
+}

@@ -17,6 +17,7 @@ import (
 	"maunium.net/go/mautrix/format"
 	"maunium.net/go/mautrix/id"
 	"net"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -42,6 +43,7 @@ type PluginHandler struct {
 	currentPlugin *Script
 	router        *router.Router
 	routeCount    int16
+	httpClient    *http.Client
 }
 
 func (pm *PluginHandler) Index(ctx *fasthttp.RequestCtx) {
@@ -60,6 +62,8 @@ func (pm *PluginHandler) IsPluginEnabled(e string) bool {
 func (pm *PluginHandler) Init() error {
 	pm.router = router.New()
 	pm.router.GET("/", pm.Index)
+
+	pm.httpClient = &http.Client{}
 
 	err := filepath.Walk(pm.PluginDir, func(path string, info os.FileInfo, err error) error {
 		if path == pm.PluginDir {
@@ -158,6 +162,7 @@ func (pm *PluginHandler) setupVM(s *Script) error {
 		"HumanizeSeconds": pm.scriptHumanizeSeconds,
 		"SendMessage":     pm.scriptSendMessage,
 		"AddCron":         pm.scriptAddCron,
+		"DoFetch":         pm.scriptFetch,
 	}
 
 	for name, function := range functions {
