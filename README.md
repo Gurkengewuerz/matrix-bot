@@ -12,6 +12,11 @@ A plugin-based Matrix bot system written in Go.
 
 # Configuration ✒
 
+Register a new client (*preferably* using
+the [Matrix admin API](https://github.com/matrix-org/synapse/tree/master/docs/admin_api)). These credentials has to be
+set in the `config.yaml` afterwards. Note: to use the bot, you have to invite it into your room. It will join
+automatically. You can configure a room whitelist inside the `config.yaml`.
+
 1. Create a new user `useradd -m matrix` and enter its home directory `cd /home/matrix`
 2. Create a directory `mkdir matrix-bot` and enter it `cd matrix-bot`
 3. Copy the build binaries and the `plugins/` directory into the folder
