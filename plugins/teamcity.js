@@ -55,7 +55,7 @@ function webhookCallback(data) {
         matrixMessage += "has been started ⚙";
     } else if (buildResult === "success") {
         matrixMessage += "has finished with status <font color=\"#00FF00\">**success**</font> 🎉";
-    } else if (buildResult === "failed") {
+    } else if (buildResult === "failure") {
         matrixMessage += "has <font color=\"#FF0000\">**failed**</font> ❌";
     } else if (buildResult === "interrupted") {
         matrixMessage += "has been interrupted ‼";
