@@ -16,7 +16,7 @@ plugins:
   - github.js
 # If left empty, the bot will autojoin every room!
 rooms:
-  - ""!XXXXXXXXXXXX:matrix.org"
+  - "!XXXXXXXXXXXX:matrix.org"
 webserver:
   listen_on: 0.0.0.0
   port: 7785
