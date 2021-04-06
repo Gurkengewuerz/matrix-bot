@@ -6,7 +6,8 @@ A plugin-based Matrix bot system written in Go.
 
 - [github.js](https://github.com/Gurkengewuerz/matrix-bot/blob/main/plugins/github.js) responds to GitHub Event Webhooks
   like pipeline events or push events.
-- [teamcity.js](https://github.com/Gurkengewuerz/matrix-bot/blob/main/plugins/teamcity.js) responds to [tcWebHooks](https://github.com/tcplugins/tcWebHooks) `Legacy Webhook (JSON)` requests
+- [teamcity.js](https://github.com/Gurkengewuerz/matrix-bot/blob/main/plugins/teamcity.js) responds
+  to [tcWebHooks](https://github.com/tcplugins/tcWebHooks) `Legacy Webhook (JSON)` requests
 - [dice.js](https://github.com/Gurkengewuerz/matrix-bot/blob/main/plugins/dice.js) a simple dice rolling bot
 
 # Configuration ✒
@@ -17,15 +18,20 @@ A plugin-based Matrix bot system written in Go.
 4. Copy `config.yaml.sample` to `config.yaml` and update to your liking
 5. Make the binary executable `chmod +x matrix-bot`
 6. Make sure every file has `matrix-bot` as the owner
+
 --------
+
 7. Set-Up a reverse proxy with Let's Encrypt
 8. Install the `matrix-bot.service` systemd file to `/etc/systemd/system/`
 9. Set-Up Pantalaimon for encryption support
 
+After that one more step is requered for the device id: Run the binary with the required arguments. The bot will
+register it self and generates a device id. Enter the device id inside your configuration file and start the bot.
+
 # Commandline arguments 💻
 
 - `-help` print help
-- `-config` relative or absolute path of the `config.yaml`. Default: `${binary_dir}/config.yaml` 
+- `-config` relative or absolute path of the `config.yaml`. Default: `${binary_dir}/config.yaml`
 - `-plugin` relative or absolute path of the `plugins/` folder. Default: `${binary_dir}/plugins/`
 
 # How to build ⚙
@@ -41,7 +47,8 @@ cd matrix-bot
 
 ⚠ Because we are using go-sqlite3 CGO is needed!
 
-For cross-compiling from a newer Linux Distro (i.e. Windows WSL) to an older linux distro you can try `go build --ldflags '-linkmode external -extldflags "-static"'`
+For cross-compiling from a newer Linux Distro (i.e. Windows WSL) to an older linux distro you can
+try `go build --ldflags '-linkmode external -extldflags "-static"'`
 
 *Dev branch build artifacts for Linux/amd64 are available in the the GitHub Actions.*
 
@@ -49,11 +56,12 @@ For cross-compiling from a newer Linux Distro (i.e. Windows WSL) to an older lin
 
 Encryption is supported using the E2EE aware proxy daemon [pantalaimon](https://github.com/matrix-org/pantalaimon).  
 Please follow the installation instructions in their repository. Afterwards you should set the Homeserver in the bot
-config to pantalaimon. 
+config to pantalaimon.
 
 # Plugin Setup
 
 ### GitHub `github.js`
+
 1. Active `github.js` in the `config.yaml`
 2. (Re)start your bot
 3. Test if plugin is loaded with `!gh ping`
@@ -62,6 +70,7 @@ config to pantalaimon.
 6. Add Webhook to your GitHub repository/project and select your wanted events
 
 ### TeamCity `teamcity.js`
+
 1. Active `teamcity.js` in the `config.yaml`
 2. (Re)start your bot
 3. Test if plugin is loaded with `!tc ping`

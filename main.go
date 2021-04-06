@@ -94,7 +94,8 @@ func main() {
 	Log.Info("logged in")
 
 	if CFG.Bot.DeviceID == "" {
-		Log.Info(resp.DeviceID)
+		Log.Info("Registering device...")
+		Log.Infof("Please enter the device id in your config file: %v", resp.DeviceID)
 		os.Exit(1)
 	}
 
